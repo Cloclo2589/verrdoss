@@ -41,6 +41,21 @@ public partial class App : System.Windows.Application
             return;
         }
 
+        if (HasFlag(e.Args, "--register-shell"))
+        {
+            ShellRegistration.Register();
+            Shutdown();
+            return;
+        }
+
+        var packAt = Array.FindIndex(e.Args, arg => string.Equals(arg, "--pack-shell", StringComparison.OrdinalIgnoreCase));
+        if (packAt >= 0 && packAt + 1 < e.Args.Length)
+        {
+            ShellRegistration.PrepareLayout(e.Args[packAt + 1]);
+            Environment.Exit(0);
+            return;
+        }
+
         var startup = HasFlag(e.Args, "--startup");
         var shell = ParseShellCommand(e.Args);
         if (!AcquireMutex())

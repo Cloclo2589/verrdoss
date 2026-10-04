@@ -8,7 +8,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <RootNamespace>Verrdoss.App</RootNamespace>
     <AssemblyName>Verrdoss</AssemblyName>
-    <Version>1.0.0</Version>
+    <Version>1.0.1</Version>
     <Product>VerrDoss</Product>
     <Company>VerrDoss</Company>
     <ApplicationIcon>Assets\verrdoss.ico</ApplicationIcon>
@@ -26,5 +26,26 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Verrdoss.Core\Verrdoss.Core.csproj" />
+    <ProjectReference Include="..\Verrdoss.Context\Verrdoss.Context.csproj" />
   </ItemGroup>
+  <Target Name="CopyComHost" AfterTargets="Build">
+    <ItemGroup>
+      <ComHostFile Include="$(MSBuildThisFileDirectory)..\Verrdoss.Context\bin\$(Configuration)\net8.0-windows\Verrdoss.Context.comhost.dll" />
+      <ComHostFile Include="$(MSBuildThisFileDirectory)..\Verrdoss.Context\bin\$(Configuration)\net8.0-windows\Verrdoss.Context.runtimeconfig.json" />
+      <ComHostFile Include="$(MSBuildThisFileDirectory)..\Verrdoss.Context\bin\$(Configuration)\net8.0-windows\Verrdoss.Context.deps.json" />
+    </ItemGroup>
+    <Copy SourceFiles="@(ComHostFile)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" Condition="Exists('%(ComHostFile.Identity)')" />
+  </Target>
+  <Target Name="IncludeComHostInPublish" AfterTargets="ComputeFilesToPublish">
+    <ItemGroup>
+      <_ComHostPublish Include="$(MSBuildThisFileDirectory)..\Verrdoss.Context\bin\$(Configuration)\net8.0-windows\Verrdoss.Context.runtimeconfig.json" />
+      <_ComHostPublish Include="$(MSBuildThisFileDirectory)..\Verrdoss.Context\bin\$(Configuration)\net8.0-windows\Verrdoss.Context.deps.json" />
+    </ItemGroup>
+    <ItemGroup>
+      <ResolvedFileToPublish Include="@(_ComHostPublish)">
+        <RelativePath>%(Filename)%(Extension)</RelativePath>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </ResolvedFileToPublish>
+    </ItemGroup>
+  </Target>
 </Project>

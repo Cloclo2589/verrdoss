@@ -34,6 +34,7 @@ Source: "staging\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs creat
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExe}"
 
 [Run]
+Filename: "{app}\{#MyAppExe}"; Parameters: "--register-shell"; StatusMsg: "Ajout au menu contextuel..."; Flags: runhidden waituntilterminated
 Filename: "{app}\{#MyAppExe}"; Description: "Lancer {#MyAppName}"; Flags: nowait postinstall skipifsilent
 
 [UninstallRun]

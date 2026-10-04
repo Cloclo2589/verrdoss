@@ -24,7 +24,7 @@ public partial class MainWindow : Window
             "Sur un SSD, supprimer les fichiers en clair ne garantit pas l'effacement physique des anciennes données. " +
             "Un dossier verrouillé reste visible, avec une icône cadenas : un double-clic demande le mot de passe, et on ne peut pas y déposer de fichiers. " +
             "Le fichier chiffré reste masqué. C'est le chiffrement qui protège le contenu. " +
-            "Le clic droit « Verrouiller avec VerrDoss » se trouve dans « Afficher plus d'options » sous Windows 11.";
+            "Le clic droit « Verrouiller avec VerrDoss » apparaît dans le menu de Windows 11.";
         Reload();
     }
 

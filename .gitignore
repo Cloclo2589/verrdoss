@@ -3,6 +3,8 @@ obj/
 publish/
 installer/staging/
 installer/output/
+installer/layout/
+installer/certs/
 .vs/
 *.user
 *.suo
