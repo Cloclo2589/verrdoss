@@ -93,9 +93,10 @@ public sealed class VaultService
         return created;
     }
 
-    public VaultRecord LockNew(string folder, byte[] masterPassword, byte[]? folderPassword)
+    public VaultRecord LockNew(string folder, byte[]? masterPassword, byte[]? folderPassword)
     {
-        EnsureMaster(masterPassword);
+        if (masterPassword is { Length: > 0 })
+            EnsureMaster(masterPassword);
         EnsureFolderPassword(folderPassword);
         var full = Path.GetFullPath(folder);
         var existing = Store.FindByOriginalPath(full);
@@ -153,9 +154,10 @@ public sealed class VaultService
         }
     }
 
-    public VaultRecord Relock(string vaultId, byte[] masterPassword, byte[]? folderPassword)
+    public VaultRecord Relock(string vaultId, byte[]? masterPassword, byte[]? folderPassword)
     {
-        EnsureMaster(masterPassword);
+        if (masterPassword is { Length: > 0 })
+            EnsureMaster(masterPassword);
         EnsureFolderPassword(folderPassword);
         var record = Require(vaultId);
         if (IsOpen(vaultId))
@@ -259,6 +261,22 @@ public sealed class VaultService
         }
     }
 
+    public void AttachRecovery(byte[] recoveryPassword)
+    {
+        if (!Store.CheckMaster(recoveryPassword))
+            return;
+        foreach (var pair in _open.ToList())
+        {
+            if (pair.Value.Header.MasterWrap.Any(value => value != 0))
+                continue;
+
+            VaultContainer.RewrapMaster(pair.Value.Header, pair.Value.Dek, recoveryPassword);
+            var record = Require(pair.Key);
+            record.Header = HeaderSnapshot.From(pair.Value.Header);
+            Store.Upsert(record);
+        }
+    }
+
     public void RemoveProtection(string vaultId)
     {
         var record = Require(vaultId);
@@ -320,7 +338,7 @@ public sealed class VaultService
                 var previous = header.Clone();
                 var dek = VaultContainer.TryUnwrap(header, currentPassword);
                 if (dek == null)
-                    throw new VaultException($"Impossible d'ouvrir {Path.GetFileName(vault.OriginalPath)} avec le mot de passe maître.");
+                    continue;
                 try
                 {
                     VaultContainer.RewrapMaster(header, dek, newPassword);
@@ -333,8 +351,13 @@ public sealed class VaultService
                 }
             }
 
-            foreach (var session in _open.Values)
-                VaultContainer.RewrapMaster(session.Header, session.Dek, newPassword);
+            foreach (var pair in _open)
+            {
+                VaultContainer.RewrapMaster(pair.Value.Header, pair.Value.Dek, newPassword);
+                var openRecord = Require(pair.Key);
+                openRecord.Header = HeaderSnapshot.From(pair.Value.Header);
+                Store.Upsert(openRecord);
+            }
 
             Store.SetMaster(newPassword, Kdf);
         }
@@ -397,8 +420,6 @@ public sealed class VaultService
         }
         else
         {
-            if (masterPassword == null)
-                throw new VaultException("Mot de passe maître requis.");
             dek = RandomNumberGenerator.GetBytes(KeyWrap.DekLength);
             ownsDek = true;
             header = VaultContainer.CreateHeader(dek, masterPassword, folderPassword, Kdf);

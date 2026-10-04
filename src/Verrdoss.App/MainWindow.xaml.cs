@@ -112,6 +112,7 @@ public partial class MainWindow : Window
                     return;
                 if (remember)
                     _app.RememberMaster(password);
+                AttachKnownRecovery();
                 OpenFolder(full);
             }
             finally
@@ -360,10 +361,8 @@ public partial class MainWindow : Window
             if (confirm != MessageBoxResult.OK)
                 return;
 
-            var master = AskRecovery();
-            if (master == null)
-                return;
-            var folder = AskPassword("Mot de passe du dossier", "Au moins 4 caractères. Le mot de passe de secours pourra toujours l'ouvrir.", confirm: true);
+            var master = UsableRecovery();
+            var folder = AskPassword("Mot de passe du dossier", "Au moins 4 caractères.", confirm: true);
             if (folder == null)
             {
                 PasswordBytes.Clear(master);
@@ -440,6 +439,8 @@ public partial class MainWindow : Window
             });
             if (ok && remember)
                 _app.RememberMaster(password);
+            if (ok)
+                AttachKnownRecovery();
             return ok;
         }
         finally
@@ -500,15 +501,13 @@ public partial class MainWindow : Window
             }
         }
 
-        var master = AskRecovery();
-        if (master == null)
-            return false;
+        var master = UsableRecovery();
         byte[]? folder = null;
         try
         {
-            if (record.HasFolderPassword)
+            if (record.HasFolderPassword || master == null)
             {
-                folder = AskPassword("Mot de passe du dossier", "Au moins 4 caractères.", confirm: true);
+                folder = AskPassword("Mot de passe du dossier", "Pour reverrouiller ce dossier.");
                 if (folder == null)
                     return false;
             }
@@ -538,23 +537,30 @@ public partial class MainWindow : Window
         }
     }
 
-    private byte[]? AskRecovery()
+    private byte[]? UsableRecovery()
     {
         var saved = _app.LoadRecovery();
-        if (saved != null)
+        if (saved == null)
+            return null;
+        if (_service.Store.CheckMaster(saved))
             return saved;
-        var password = AskPassword("Mot de passe de secours", "Il n'est redemandé que si la protection de ce compte a disparu.");
-        if (password == null)
-            return null;
-        if (!_service.Store.CheckMaster(password))
-        {
-            PasswordBytes.Clear(password);
-            MessageBox.Show("Mot de passe de secours incorrect.", Brand.Name, MessageBoxButton.OK, MessageBoxImage.Warning);
-            return null;
-        }
+        PasswordBytes.Clear(saved);
+        return null;
+    }
 
-        _app.RememberMaster(password);
-        return password;
+    private void AttachKnownRecovery()
+    {
+        var recovery = UsableRecovery();
+        if (recovery == null)
+            return;
+        try
+        {
+            _service.AttachRecovery(recovery);
+        }
+        finally
+        {
+            PasswordBytes.Clear(recovery);
+        }
     }
 
     private byte[]? AskPassword(string title, string message, bool confirm = false)

@@ -12,28 +12,34 @@ public static class VaultContainer
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
-    public static ContainerHeader CreateHeader(byte[] dek, byte[] masterPassword, byte[]? folderPassword, KdfParameters kdf)
+    public static ContainerHeader CreateHeader(byte[] dek, byte[]? masterPassword, byte[]? folderPassword, KdfParameters kdf)
     {
         if (dek.Length != KeyWrap.DekLength)
             throw new VaultException("Clé de données invalide.");
+        if ((masterPassword == null || masterPassword.Length == 0) && (folderPassword == null || folderPassword.Length == 0))
+            throw new VaultException("Mot de passe du dossier requis.");
 
         var header = new ContainerHeader
         {
             Kdf = kdf,
             MasterSalt = RandomNumberGenerator.GetBytes(16),
+            MasterWrap = new byte[KeyWrap.WrapLength],
             FolderSalt = new byte[16],
             FolderWrap = new byte[KeyWrap.WrapLength],
             Flags = 0
         };
 
-        var masterKek = Argon2Kdf.Derive(masterPassword, header.MasterSalt, kdf);
-        try
+        if (masterPassword is { Length: > 0 })
         {
-            header.MasterWrap = KeyWrap.Wrap(masterKek, dek, "wrap-master");
-        }
-        finally
-        {
-            Argon2Kdf.Clear(masterKek);
+            var masterKek = Argon2Kdf.Derive(masterPassword, header.MasterSalt, kdf);
+            try
+            {
+                header.MasterWrap = KeyWrap.Wrap(masterKek, dek, "wrap-master");
+            }
+            finally
+            {
+                Argon2Kdf.Clear(masterKek);
+            }
         }
 
         if (folderPassword is { Length: > 0 })
