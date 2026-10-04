@@ -4,6 +4,8 @@ namespace Verrdoss.App;
 
 public static class ShellNotify
 {
+    private const uint MakeDir = 0x00000008;
+    private const uint RemoveDir = 0x00000010;
     private const uint UpdateItem = 0x00002000;
     private const uint UpdateDirectory = 0x00001000;
     private const uint PathFlag = 0x0005;
@@ -20,6 +22,8 @@ public static class ShellNotify
 
     public static void RefreshLocked(string folder)
     {
+        SHChangeNotify(RemoveDir, PathFlag | Flush, folder, IntPtr.Zero);
+        SHChangeNotify(MakeDir, PathFlag | Flush, folder, IntPtr.Zero);
         Refresh(folder);
         var icon = Path.Combine(folder, "verrdoss.ico");
         if (File.Exists(icon))

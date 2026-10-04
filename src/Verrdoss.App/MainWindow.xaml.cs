@@ -89,7 +89,7 @@ public partial class MainWindow : Window
                 return;
             }
 
-            var prompt = new PasswordWindow("Déverrouiller", "Mot de passe du dossier, ou mot de passe maître.");
+            var prompt = new PasswordWindow("Déverrouiller", PasswordHint(record));
             prompt.WindowStartupLocation = WindowStartupLocation.Manual;
             prompt.Topmost = true;
             prompt.ShowInTaskbar = true;
@@ -194,53 +194,18 @@ public partial class MainWindow : Window
         }
 
         VaultList.SelectedItem = VaultList.Items.OfType<VaultRow>().FirstOrDefault(row => row.Id == existing.Id);
-        _ = LockSelectedAsync();
+        if (_service.Describe(existing).StartsWith("Verrouillé", StringComparison.Ordinal))
+            UnlockFromShell(full);
+        else
+            _ = LockSelectedAsync();
     }
 
     public async Task<bool> RelockMissingAsync()
     {
         foreach (var vault in _service.UnlockedWithoutKey())
         {
-            var name = Path.GetFileName(vault.OriginalPath);
-            var proceed = MessageBox.Show(
-                $"{name} est encore en clair, mais sa clé n'est plus en mémoire. Saisissez le mot de passe maître pour le reverrouiller.",
-                Brand.Name,
-                MessageBoxButton.OKCancel,
-                MessageBoxImage.Warning);
-            if (proceed != MessageBoxResult.OK)
+            if (!await RelockRecordAsync(vault, busy: false))
                 return false;
-
-            var masterPrompt = new PasswordWindow("Mot de passe maître", $"Mot de passe maître pour reverrouiller {name}.");
-            masterPrompt.Owner = this;
-            if (masterPrompt.ShowDialog() != true)
-                return false;
-            var master = PasswordBytes.From(masterPrompt.Password);
-            masterPrompt.Clear();
-            byte[]? folder = null;
-            try
-            {
-                if (MessageBox.Show(
-                        "Conserver un mot de passe propre à ce dossier ? Le mot de passe maître pourra toujours l'ouvrir.",
-                        Brand.Name,
-                        MessageBoxButton.YesNo,
-                        MessageBoxImage.Question) == MessageBoxResult.Yes)
-                {
-                    var folderPrompt = new PasswordWindow("Mot de passe du dossier", "Au moins 4 caractères.", confirm: true);
-                    folderPrompt.Owner = this;
-                    if (folderPrompt.ShowDialog() != true)
-                        return false;
-                    folder = PasswordBytes.From(folderPrompt.Password);
-                    folderPrompt.Clear();
-                }
-
-                await Task.Run(() => _service.Relock(vault.Id, master, folder));
-                _app.RememberMaster(master);
-            }
-            finally
-            {
-                PasswordBytes.Clear(master);
-                PasswordBytes.Clear(folder);
-            }
         }
 
         Reload();
@@ -287,7 +252,7 @@ public partial class MainWindow : Window
         byte[]? current = null;
         if (!_service.IsOpen(record.Id))
         {
-            var prompt = new PasswordWindow("Mot de passe actuel", "Mot de passe du dossier ou mot de passe maître.");
+            var prompt = new PasswordWindow("Mot de passe actuel", PasswordHint(record));
             prompt.Owner = this;
             if (prompt.ShowDialog() != true)
                 return;
@@ -296,7 +261,7 @@ public partial class MainWindow : Window
         }
 
         var choice = MessageBox.Show(
-            "Voulez-vous définir un mot de passe propre ? Non retire le mot de passe du dossier. Le maître pourra toujours l'ouvrir.",
+            "Voulez-vous définir un mot de passe propre ? Non retire le mot de passe du dossier. Le mot de passe de secours pourra toujours l'ouvrir.",
             Brand.Name,
             MessageBoxButton.YesNoCancel,
             MessageBoxImage.Question);
@@ -395,40 +360,22 @@ public partial class MainWindow : Window
             if (confirm != MessageBoxResult.OK)
                 return;
 
-            var master = _app.CopyMaster();
-            byte[]? folder = null;
+            var master = AskRecovery();
+            if (master == null)
+                return;
+            var folder = AskPassword("Mot de passe du dossier", "Au moins 4 caractères. Le mot de passe de secours pourra toujours l'ouvrir.", confirm: true);
+            if (folder == null)
+            {
+                PasswordBytes.Clear(master);
+                return;
+            }
             try
             {
-                if (master == null)
-                {
-                    var prompt = new PasswordWindow("Mot de passe maître", "Saisissez le mot de passe maître pour chiffrer ce dossier.");
-                    prompt.Owner = this;
-                    if (prompt.ShowDialog() != true)
-                        return;
-                    master = PasswordBytes.From(prompt.Password);
-                    prompt.Clear();
-                }
-
-                if (MessageBox.Show(
-                        "Ajouter un mot de passe propre à ce dossier ? Le mot de passe maître pourra toujours l'ouvrir.",
-                        Brand.Name,
-                        MessageBoxButton.YesNo,
-                        MessageBoxImage.Question) == MessageBoxResult.Yes)
-                {
-                    var prompt = new PasswordWindow("Mot de passe du dossier", "Au moins 4 caractères.", confirm: true);
-                    prompt.Owner = this;
-                    if (prompt.ShowDialog() != true)
-                        return;
-                    folder = PasswordBytes.From(prompt.Password);
-                    prompt.Clear();
-                }
-
                 IsEnabled = false;
                 Mouse.OverrideCursor = Cursors.Wait;
                 var masterCopy = master;
                 var folderCopy = folder;
                 await Task.Run(() => _service.LockNew(path, masterCopy, folderCopy));
-                _app.RememberMaster(masterCopy);
                 Reload();
             }
             finally
@@ -460,41 +407,10 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (_service.IsOpen(row.Id))
-        {
-            await RunBusy(() => _service.LockOpen(row.Id));
-            return;
-        }
-
-        var masterPrompt = new PasswordWindow("Mot de passe maître", "La clé n'est plus en mémoire. Saisissez le mot de passe maître pour reverrouiller.");
-        masterPrompt.Owner = this;
-        if (masterPrompt.ShowDialog() != true)
-            return;
-        var master = PasswordBytes.From(masterPrompt.Password);
-        masterPrompt.Clear();
-        byte[]? folder = null;
         var record = _service.Store.FindById(row.Id);
-        try
-        {
-            if (record?.HasFolderPassword == true &&
-                MessageBox.Show("Saisir aussi le mot de passe propre pour le conserver ?", Brand.Name, MessageBoxButton.YesNo) == MessageBoxResult.Yes)
-            {
-                var prompt = new PasswordWindow("Mot de passe du dossier", "Au moins 4 caractères.", confirm: true);
-                prompt.Owner = this;
-                if (prompt.ShowDialog() != true)
-                    return;
-                folder = PasswordBytes.From(prompt.Password);
-                prompt.Clear();
-            }
-
-            if (await RunBusy(() => _service.Relock(row.Id, master, folder)))
-                _app.RememberMaster(master);
-        }
-        finally
-        {
-            PasswordBytes.Clear(master);
-            PasswordBytes.Clear(folder);
-        }
+        if (record == null)
+            return;
+        await RelockRecordAsync(record, busy: true);
     }
 
     private async Task<bool> UnlockSelectedAsync()
@@ -508,7 +424,7 @@ public partial class MainWindow : Window
             return true;
         }
 
-        var prompt = new PasswordWindow("Déverrouiller", "Mot de passe du dossier, ou mot de passe maître.");
+        var prompt = new PasswordWindow("Déverrouiller", PasswordHint(_service.Store.FindById(row.Id) ?? throw new VaultException("Dossier protégé introuvable.")));
         prompt.Owner = this;
         if (prompt.ShowDialog() != true)
             return false;
@@ -561,6 +477,99 @@ public partial class MainWindow : Window
             _app.Gate.End();
         }
     }
+
+    private async Task<bool> RelockRecordAsync(VaultRecord record, bool busy)
+    {
+        if (_service.IsOpen(record.Id))
+            return await RunLock(() => _service.LockOpen(record.Id), busy);
+
+        if (record.Header != null)
+        {
+            var secret = AskPassword(
+                record.HasFolderPassword ? "Mot de passe du dossier" : "Mot de passe",
+                $"Pour reverrouiller {Path.GetFileName(record.OriginalPath)}.");
+            if (secret == null)
+                return false;
+            try
+            {
+                return await RunLock(() => _service.RelockWithSecret(record.Id, secret), busy);
+            }
+            finally
+            {
+                PasswordBytes.Clear(secret);
+            }
+        }
+
+        var master = AskRecovery();
+        if (master == null)
+            return false;
+        byte[]? folder = null;
+        try
+        {
+            if (record.HasFolderPassword)
+            {
+                folder = AskPassword("Mot de passe du dossier", "Au moins 4 caractères.", confirm: true);
+                if (folder == null)
+                    return false;
+            }
+
+            return await RunLock(() => _service.Relock(record.Id, master, folder), busy);
+        }
+        finally
+        {
+            PasswordBytes.Clear(master);
+            PasswordBytes.Clear(folder);
+        }
+    }
+
+    private async Task<bool> RunLock(Action action, bool busy)
+    {
+        if (busy)
+            return await RunBusy(action);
+        try
+        {
+            await Task.Run(action);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            ShowError(ex);
+            return false;
+        }
+    }
+
+    private byte[]? AskRecovery()
+    {
+        var saved = _app.LoadRecovery();
+        if (saved != null)
+            return saved;
+        var password = AskPassword("Mot de passe de secours", "Il n'est redemandé que si la protection de ce compte a disparu.");
+        if (password == null)
+            return null;
+        if (!_service.Store.CheckMaster(password))
+        {
+            PasswordBytes.Clear(password);
+            MessageBox.Show("Mot de passe de secours incorrect.", Brand.Name, MessageBoxButton.OK, MessageBoxImage.Warning);
+            return null;
+        }
+
+        _app.RememberMaster(password);
+        return password;
+    }
+
+    private byte[]? AskPassword(string title, string message, bool confirm = false)
+    {
+        var prompt = new PasswordWindow(title, message, confirm);
+        prompt.Owner = this;
+        if (prompt.ShowDialog() != true)
+            return null;
+        var password = PasswordBytes.From(prompt.Password);
+        prompt.Clear();
+        return password;
+    }
+
+    private static string PasswordHint(VaultRecord record)
+        => record.HasFolderPassword ? "Mot de passe du dossier." : "Mot de passe.";
 
     private VaultRow? Selected()
     {

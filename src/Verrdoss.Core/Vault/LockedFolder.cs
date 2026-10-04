@@ -231,7 +231,9 @@ public static class LockedFolder
         ini.AppendLine("[.ShellClassInfo]");
         ini.AppendLine(Marker);
         ini.AppendLine("ConfirmFileOp=0");
-        ini.AppendLine("IconResource=" + icon + ",0");
+        ini.AppendLine("IconFile=verrdoss.ico");
+        ini.AppendLine("IconIndex=0");
+        ini.AppendLine("IconResource=verrdoss.ico,0");
         ini.AppendLine("InfoTip=Dossier verrouillé par VerrDoss. L'ouverture demande le mot de passe.");
         File.WriteAllText(iniPath, ini.ToString(), new UnicodeEncoding(false, true));
 

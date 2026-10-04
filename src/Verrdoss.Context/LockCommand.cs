@@ -10,7 +10,7 @@ public sealed class LockCommand : IExplorerCommand
 {
     public int GetTitle(IShellItemArray? items, out string? title)
     {
-        title = "Verrouiller avec VerrDoss";
+        title = IsLocked(items) ? "Déverrouiller avec VerrDoss" : "Verrouiller avec VerrDoss";
         return 0;
     }
 
@@ -23,7 +23,7 @@ public sealed class LockCommand : IExplorerCommand
 
     public int GetToolTip(IShellItemArray? items, out string? tip)
     {
-        tip = "Chiffrer ce dossier avec VerrDoss";
+        tip = IsLocked(items) ? "Ouvrir ce dossier avec VerrDoss" : "Chiffrer ce dossier avec VerrDoss";
         return 0;
     }
 
@@ -51,7 +51,7 @@ public sealed class LockCommand : IExplorerCommand
             if (item.GetDisplayName(0x80058000, out var path) != 0 || string.IsNullOrWhiteSpace(path))
                 continue;
             var start = new System.Diagnostics.ProcessStartInfo(exe) { UseShellExecute = true };
-            start.ArgumentList.Add("--lock");
+            start.ArgumentList.Add(IsLockedPath(path) ? "--unlock" : "--lock");
             start.ArgumentList.Add(path);
             System.Diagnostics.Process.Start(start);
         }
@@ -68,6 +68,34 @@ public sealed class LockCommand : IExplorerCommand
     {
         commands = IntPtr.Zero;
         return unchecked((int)0x80004001);
+    }
+
+    private static bool IsLocked(IShellItemArray? items)
+    {
+        if (items == null || items.GetCount(out var count) != 0 || count == 0)
+            return false;
+        if (items.GetItemAt(0, out var item) != 0 || item == null)
+            return false;
+        if (item.GetDisplayName(0x80058000, out var path) != 0 || string.IsNullOrWhiteSpace(path))
+            return false;
+        return IsLockedPath(path);
+    }
+
+    private static bool IsLockedPath(string path)
+    {
+        try
+        {
+            var ini = Path.Combine(path, "desktop.ini");
+            return File.Exists(ini) && File.ReadAllText(ini).Contains("VerrdossLock=1", StringComparison.Ordinal);
+        }
+        catch (IOException)
+        {
+            return false;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return false;
+        }
     }
 
     private static string? ExePath()

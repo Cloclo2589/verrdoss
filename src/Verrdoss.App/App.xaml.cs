@@ -174,6 +174,21 @@ public partial class App : System.Windows.Application
     {
         PasswordBytes.Clear(_masterPassword);
         _masterPassword = (byte[])password.Clone();
+        if (_service != null)
+            RecoverySecret.Save(_service.Store.DataDirectory, password);
+    }
+
+    public byte[]? LoadRecovery()
+    {
+        if (_masterPassword != null)
+            return (byte[])_masterPassword.Clone();
+        if (_service == null)
+            return null;
+        var loaded = RecoverySecret.Load(_service.Store.DataDirectory);
+        if (loaded == null)
+            return null;
+        _masterPassword = (byte[])loaded.Clone();
+        return loaded;
     }
 
     public byte[]? CopyMaster() => _masterPassword == null ? null : (byte[])_masterPassword.Clone();

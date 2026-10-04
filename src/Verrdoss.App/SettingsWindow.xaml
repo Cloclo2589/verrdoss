@@ -19,14 +19,14 @@
 
         <Border Style="{StaticResource Card}" Margin="0,16,0,0">
             <StackPanel>
-                <TextBlock Text="Mot de passe maître" Style="{StaticResource SectionText}"/>
+                <TextBlock Text="Mot de passe de secours" Style="{StaticResource SectionText}"/>
                 <TextBlock Text="Mot de passe actuel" Style="{StaticResource FieldLabel}" Margin="0,16,0,6"/>
                 <PasswordBox x:Name="CurrentInput"/>
                 <TextBlock Text="Nouveau mot de passe" Style="{StaticResource FieldLabel}" Margin="0,14,0,6"/>
                 <PasswordBox x:Name="NewInput"/>
                 <TextBlock Text="Confirmation" Style="{StaticResource FieldLabel}" Margin="0,14,0,6"/>
                 <PasswordBox x:Name="ConfirmInput"/>
-                <Button Content="Changer le mot de passe maître" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" Margin="0,16,0,0" Click="OnChangeMaster"/>
+                <Button Content="Changer le mot de passe de secours" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" Margin="0,16,0,0" Click="OnChangeMaster"/>
             </StackPanel>
         </Border>
 

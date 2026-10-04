@@ -8,7 +8,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <RootNamespace>Verrdoss.App</RootNamespace>
     <AssemblyName>Verrdoss</AssemblyName>
-    <Version>1.0.2</Version>
+    <Version>1.0.3</Version>
     <Product>VerrDoss</Product>
     <Company>VerrDoss</Company>
     <ApplicationIcon>Assets\verrdoss.ico</ApplicationIcon>

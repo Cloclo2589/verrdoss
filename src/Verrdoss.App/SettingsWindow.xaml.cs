@@ -97,7 +97,7 @@ public partial class SettingsWindow : Window
     {
         if (NewInput.Password.Length < 8)
         {
-            MessageBox.Show("Le mot de passe maître doit contenir au moins 8 caractères.", Brand.Name, MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show("Le mot de passe de secours doit contenir au moins 8 caractères.", Brand.Name, MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
         if (NewInput.Password != ConfirmInput.Password)
@@ -116,7 +116,7 @@ public partial class SettingsWindow : Window
             CurrentInput.Password = "";
             NewInput.Password = "";
             ConfirmInput.Password = "";
-            MessageBox.Show("Mot de passe maître modifié.", Brand.Name, MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("Mot de passe de secours modifié.", Brand.Name, MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (Exception ex)
         {

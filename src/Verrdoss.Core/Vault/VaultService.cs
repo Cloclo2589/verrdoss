@@ -129,6 +129,30 @@ public sealed class VaultService
         return locked;
     }
 
+    public VaultRecord RelockWithSecret(string vaultId, byte[] password)
+    {
+        var record = Require(vaultId);
+        if (IsOpen(vaultId))
+            return LockOpen(vaultId);
+        if (record.Header == null)
+            throw new VaultException("Le mot de passe de secours est requis pour reverrouiller ce dossier.");
+        if (!Directory.Exists(record.OriginalPath))
+            throw new VaultException("Le dossier en clair est introuvable.");
+        if (File.Exists(record.ContainerPath))
+            throw new VaultException("Le conteneur existe déjà.");
+
+        var header = record.Header.ToHeader();
+        var dek = VaultContainer.TryUnwrap(header, password) ?? throw new VaultException("Mot de passe incorrect.");
+        try
+        {
+            return LockCore(record.Id, record.OriginalPath, record.ContainerPath, masterPassword: null, folderPassword: null, header, dek);
+        }
+        finally
+        {
+            Argon2Kdf.Clear(dek);
+        }
+    }
+
     public VaultRecord Relock(string vaultId, byte[] masterPassword, byte[]? folderPassword)
     {
         EnsureMaster(masterPassword);
@@ -216,6 +240,7 @@ public sealed class VaultService
             File.Delete(record.ContainerPath);
             record.State = VaultStates.Unlocked;
             record.HasFolderPassword = header.HasFolderPassword;
+            record.Header = HeaderSnapshot.From(header);
             Store.Upsert(record);
             _open[record.Id] = new SessionVault(record.Id, dek, header);
             stored = true;

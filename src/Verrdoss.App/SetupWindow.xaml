@@ -1,13 +1,13 @@
 <Window x:Class="Verrdoss.App.SetupWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Créer le mot de passe maître" Height="Auto" Width="480" SizeToContent="Height"
+        Title="Créer le mot de passe de secours" Height="Auto" Width="480" SizeToContent="Height"
         WindowStartupLocation="CenterScreen" ResizeMode="NoResize">
     <Border Style="{StaticResource Card}" Margin="16">
         <StackPanel>
             <TextBlock Style="{StaticResource BodyText}"
-                       Text="Choisissez un mot de passe maître d'au moins 8 caractères. Il pourra ouvrir tous les dossiers, y compris ceux qui ont un mot de passe propre. Il n'est jamais enregistré en clair."/>
-            <TextBlock Text="Mot de passe maître" Style="{StaticResource FieldLabel}" Margin="0,16,0,6"/>
+                       Text="Choisissez un mot de passe de secours d'au moins 8 caractères. Il peut ouvrir un dossier si son mot de passe est oublié. Il est protégé sur ce compte Windows, jamais enregistré en clair."/>
+            <TextBlock Text="Mot de passe de secours" Style="{StaticResource FieldLabel}" Margin="0,16,0,6"/>
             <PasswordBox x:Name="PasswordInput"/>
             <TextBlock Text="Confirmation" Style="{StaticResource FieldLabel}" Margin="0,16,0,6"/>
             <PasswordBox x:Name="ConfirmInput"/>

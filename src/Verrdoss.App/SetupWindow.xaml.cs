@@ -16,7 +16,7 @@ public partial class SetupWindow : Window
     {
         if (PasswordInput.Password.Length < 8)
         {
-            MessageBox.Show("Le mot de passe maître doit contenir au moins 8 caractères.", Brand.Name, MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show("Le mot de passe de secours doit contenir au moins 8 caractères.", Brand.Name, MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
         if (PasswordInput.Password != ConfirmInput.Password)

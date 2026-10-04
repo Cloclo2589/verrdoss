@@ -16,6 +16,47 @@ public sealed class VaultRecord
     public string ContainerPath { get; set; } = "";
     public bool HasFolderPassword { get; set; }
     public string State { get; set; } = VaultStates.Locked;
+    public HeaderSnapshot? Header { get; set; }
+}
+
+public sealed class HeaderSnapshot
+{
+    public int MemoryKiB { get; set; }
+    public int Iterations { get; set; }
+    public int Parallelism { get; set; }
+    public ushort Flags { get; set; }
+    public string MasterSalt { get; set; } = "";
+    public string MasterWrap { get; set; } = "";
+    public string FolderSalt { get; set; } = "";
+    public string FolderWrap { get; set; } = "";
+
+    public static HeaderSnapshot From(ContainerHeader header)
+    {
+        return new HeaderSnapshot
+        {
+            MemoryKiB = header.Kdf.MemoryKiB,
+            Iterations = header.Kdf.Iterations,
+            Parallelism = header.Kdf.Parallelism,
+            Flags = header.Flags,
+            MasterSalt = Convert.ToBase64String(header.MasterSalt),
+            MasterWrap = Convert.ToBase64String(header.MasterWrap),
+            FolderSalt = Convert.ToBase64String(header.FolderSalt),
+            FolderWrap = Convert.ToBase64String(header.FolderWrap)
+        };
+    }
+
+    public ContainerHeader ToHeader()
+    {
+        return new ContainerHeader
+        {
+            Kdf = new KdfParameters(MemoryKiB, Iterations, Parallelism),
+            Flags = Flags,
+            MasterSalt = Convert.FromBase64String(MasterSalt),
+            MasterWrap = Convert.FromBase64String(MasterWrap),
+            FolderSalt = Convert.FromBase64String(FolderSalt),
+            FolderWrap = Convert.FromBase64String(FolderWrap)
+        };
+    }
 }
 
 public static class VaultStates
