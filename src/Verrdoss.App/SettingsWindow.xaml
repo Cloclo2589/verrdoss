@@ -1,0 +1,57 @@
+<Window x:Class="Verrdoss.App.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Paramètres" Height="Auto" Width="520" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize" ShowInTaskbar="False">
+    <StackPanel Margin="16">
+        <Border Style="{StaticResource Card}">
+            <StackPanel>
+                <TextBlock Text="Délai d'inactivité" Style="{StaticResource SectionText}"/>
+                <TextBlock Style="{StaticResource CaptionText}" Margin="0,6,0,0"
+                           Text="Les dossiers déverrouillés sont rechiffrés après ce délai sans activité Windows, et aussi quand vous quittez VerrDoss."/>
+                <DockPanel Margin="0,16,0,0">
+                    <TextBlock DockPanel.Dock="Right" Text="minutes" VerticalAlignment="Center" Margin="8,0,0,0" Foreground="{StaticResource Muted}"/>
+                    <TextBox x:Name="IdleInput" Width="96" HorizontalAlignment="Left"/>
+                </DockPanel>
+                <Button Content="Enregistrer le délai" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" Margin="0,16,0,0" Click="OnSaveIdle"/>
+            </StackPanel>
+        </Border>
+
+        <Border Style="{StaticResource Card}" Margin="0,16,0,0">
+            <StackPanel>
+                <TextBlock Text="Mot de passe maître" Style="{StaticResource SectionText}"/>
+                <TextBlock Text="Mot de passe actuel" Style="{StaticResource FieldLabel}" Margin="0,16,0,6"/>
+                <PasswordBox x:Name="CurrentInput"/>
+                <TextBlock Text="Nouveau mot de passe" Style="{StaticResource FieldLabel}" Margin="0,14,0,6"/>
+                <PasswordBox x:Name="NewInput"/>
+                <TextBlock Text="Confirmation" Style="{StaticResource FieldLabel}" Margin="0,14,0,6"/>
+                <PasswordBox x:Name="ConfirmInput"/>
+                <Button Content="Changer le mot de passe maître" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" Margin="0,16,0,0" Click="OnChangeMaster"/>
+            </StackPanel>
+        </Border>
+
+        <Border Style="{StaticResource Card}" Margin="0,16,0,0">
+            <StackPanel>
+                <TextBlock Text="Démarrage" Style="{StaticResource SectionText}"/>
+                <CheckBox x:Name="StartupBox" Margin="0,12,0,0" FontSize="14" Foreground="{StaticResource Ink}"
+                          Content="Lancer VerrDoss à l'ouverture de Windows" Checked="OnStartupChanged" Unchecked="OnStartupChanged"/>
+                <TextBlock Style="{StaticResource CaptionText}" Margin="0,8,0,0"
+                           Text="VerrDoss reste dans la zone de notification, sans ouvrir la fenêtre."/>
+            </StackPanel>
+        </Border>
+
+        <Border Style="{StaticResource Card}" Margin="0,16,0,0">
+            <StackPanel>
+                <TextBlock Text="Mise à jour" Style="{StaticResource SectionText}"/>
+                <TextBlock x:Name="VersionText" Style="{StaticResource CaptionText}" Margin="0,8,0,0"/>
+                <TextBlock x:Name="UpdateStatus" Style="{StaticResource CaptionText}" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                    <Button Content="Vérifier" Style="{StaticResource PrimaryButton}" Click="OnCheckUpdate"/>
+                    <Button x:Name="InstallUpdateButton" Content="Installer" Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" Visibility="Collapsed" Click="OnInstallUpdate"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <Button Content="Fermer" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Right" MinWidth="140" IsCancel="True" Margin="0,16,0,0"/>
+    </StackPanel>
+</Window>
