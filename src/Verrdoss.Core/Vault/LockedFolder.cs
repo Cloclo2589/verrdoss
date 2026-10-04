@@ -53,12 +53,6 @@ public static class LockedFolder
         try
         {
             Directory.CreateDirectory(folder);
-            var icon = Path.Combine(folder, "verrdoss.ico");
-            if (!string.IsNullOrWhiteSpace(iconPath) && File.Exists(iconPath))
-                File.Copy(iconPath, icon, overwrite: true);
-            else
-                File.WriteAllBytes(icon, FallbackIcon());
-
             WriteAppearance(folder, iconPath);
             Protect(folder);
         }
@@ -223,13 +217,12 @@ public static class LockedFolder
     private static void WriteAppearance(string folder, string? iconPath)
     {
         var icon = Path.Combine(folder, "verrdoss.ico");
-        if (!File.Exists(icon))
-        {
-            if (!string.IsNullOrWhiteSpace(iconPath) && File.Exists(iconPath))
-                File.Copy(iconPath, icon, overwrite: true);
-            else
-                File.WriteAllBytes(icon, FallbackIcon());
-        }
+        if (File.Exists(icon))
+            File.SetAttributes(icon, FileAttributes.Normal);
+        if (!string.IsNullOrWhiteSpace(iconPath) && File.Exists(iconPath))
+            File.Copy(iconPath, icon, overwrite: true);
+        else if (!File.Exists(icon))
+            File.WriteAllBytes(icon, FallbackIcon());
 
         var iniPath = Path.Combine(folder, "desktop.ini");
         if (File.Exists(iniPath))
@@ -238,7 +231,7 @@ public static class LockedFolder
         ini.AppendLine("[.ShellClassInfo]");
         ini.AppendLine(Marker);
         ini.AppendLine("ConfirmFileOp=0");
-        ini.AppendLine("IconResource=verrdoss.ico,0");
+        ini.AppendLine("IconResource=" + icon + ",0");
         ini.AppendLine("InfoTip=Dossier verrouillé par VerrDoss. L'ouverture demande le mot de passe.");
         File.WriteAllText(iniPath, ini.ToString(), new UnicodeEncoding(false, true));
 

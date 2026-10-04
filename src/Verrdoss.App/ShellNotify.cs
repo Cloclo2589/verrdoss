@@ -18,6 +18,78 @@ public static class ShellNotify
         SHChangeNotify(0x00000800, PathFlag | Flush, path, IntPtr.Zero);
     }
 
+    public static void RefreshLocked(string folder)
+    {
+        Refresh(folder);
+        var icon = Path.Combine(folder, "verrdoss.ico");
+        if (File.Exists(icon))
+            SHChangeNotify(UpdateItem, PathFlag | Flush, icon, IntPtr.Zero);
+        RefreshOpenViews(folder);
+    }
+
+    private static void RefreshOpenViews(string folder)
+    {
+        var parent = Path.GetDirectoryName(folder);
+        if (string.IsNullOrEmpty(parent))
+            return;
+        if (IsDesktop(parent))
+            RefreshDesktopView();
+
+        try
+        {
+            dynamic shell = Activator.CreateInstance(Type.GetTypeFromProgID("Shell.Application")!)!;
+            foreach (dynamic window in shell.Windows())
+            {
+                string url;
+                try { url = (string)window.LocationURL; }
+                catch { continue; }
+                var location = ToFilePath(url);
+                if (location == null || !SamePath(location, parent))
+                    continue;
+                try { window.Refresh(); }
+                catch { }
+            }
+        }
+        catch
+        {
+        }
+    }
+
+    private static bool IsDesktop(string path)
+    {
+        var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+        var known = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+        return SamePath(path, desktop) || SamePath(path, known);
+    }
+
+    private static string? ToFilePath(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url) || !url.StartsWith("file:", StringComparison.OrdinalIgnoreCase))
+            return null;
+        try
+        {
+            return new Uri(url).LocalPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        }
+        catch (UriFormatException)
+        {
+            return null;
+        }
+    }
+
+    private static bool SamePath(string left, string right)
+    {
+        try
+        {
+            var a = Path.GetFullPath(left).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            var b = Path.GetFullPath(right).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            return string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
     public static void RefreshIcons()
     {
         SHChangeNotify(0x08000000, Flush, null, IntPtr.Zero);

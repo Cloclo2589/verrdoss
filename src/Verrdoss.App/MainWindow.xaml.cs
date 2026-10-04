@@ -50,7 +50,12 @@ public partial class MainWindow : Window
         if (selected != null)
             VaultList.SelectedItem = rows.FirstOrDefault(row => row.Id == selected);
         foreach (var row in rows)
-            ShellNotify.Refresh(row.Location);
+        {
+            if (row.State.StartsWith("Verrouillé", StringComparison.Ordinal))
+                ShellNotify.RefreshLocked(row.Location);
+            else
+                ShellNotify.Refresh(row.Location);
+        }
     }
 
     public async void UnlockFromShell(string path)
@@ -170,7 +175,26 @@ public partial class MainWindow : Window
         Show();
         WindowState = WindowState.Normal;
         Activate();
-        _ = AddFolderAsync(path);
+        string full;
+        try
+        {
+            full = Path.GetFullPath(path);
+        }
+        catch (Exception)
+        {
+            MessageBox.Show("Emplacement invalide.", Brand.Name, MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var existing = _service.Store.FindByOriginalPath(full);
+        if (existing == null)
+        {
+            _ = AddFolderAsync(full);
+            return;
+        }
+
+        VaultList.SelectedItem = VaultList.Items.OfType<VaultRow>().FirstOrDefault(row => row.Id == existing.Id);
+        _ = LockSelectedAsync();
     }
 
     public async Task<bool> RelockMissingAsync()
