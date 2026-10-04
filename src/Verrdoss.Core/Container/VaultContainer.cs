@@ -115,6 +115,9 @@ public static class VaultContainer
             }
         }
 
+        if (!header.MasterWrap.Any(value => value != 0))
+            return null;
+
         var masterKek = Argon2Kdf.Derive(password, header.MasterSalt, header.Kdf);
         try
         {

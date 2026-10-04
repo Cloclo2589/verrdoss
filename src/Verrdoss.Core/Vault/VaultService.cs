@@ -205,7 +205,11 @@ public sealed class VaultService
         var header = VaultContainer.ReadHeader(record.ContainerPath);
         var dek = VaultContainer.TryUnwrap(header, password);
         if (dek == null)
+        {
+            if (!header.MasterWrap.Any(value => value != 0) && Store.CheckMaster(password))
+                throw new VaultException("Ce dossier n'a pas encore le mot de passe de secours. Ouvrez-le une fois avec son mot de passe, puis verrouillez-le : le secours fonctionnera ensuite.");
             throw new VaultException("Mot de passe incorrect.");
+        }
 
         var parent = Path.GetDirectoryName(record.OriginalPath) ?? throw new VaultException("Emplacement invalide.");
         var restore = Path.Combine(parent, Path.GetFileName(record.OriginalPath) + ".verrdoss.restore");

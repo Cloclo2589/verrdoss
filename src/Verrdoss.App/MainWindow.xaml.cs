@@ -105,8 +105,17 @@ public partial class MainWindow : Window
             {
                 var ok = await RunBusy(() =>
                 {
-                    _service.Unlock(record.Id, password);
-                    remember = _service.Store.CheckMaster(password);
+                    try
+                    {
+                        _service.Unlock(record.Id, password);
+                        remember = _service.Store.CheckMaster(password);
+                    }
+                    catch (VaultException)
+                    {
+                        if (_service.Store.CheckMaster(password))
+                            _app.RememberMaster(password);
+                        throw;
+                    }
                 });
                 if (!ok)
                     return;
@@ -434,8 +443,17 @@ public partial class MainWindow : Window
         {
             var ok = await RunBusy(() =>
             {
-                _service.Unlock(row.Id, password);
-                remember = _service.Store.CheckMaster(password);
+                try
+                {
+                    _service.Unlock(row.Id, password);
+                    remember = _service.Store.CheckMaster(password);
+                }
+                catch (VaultException)
+                {
+                    if (_service.Store.CheckMaster(password))
+                        _app.RememberMaster(password);
+                    throw;
+                }
             });
             if (ok && remember)
                 _app.RememberMaster(password);
